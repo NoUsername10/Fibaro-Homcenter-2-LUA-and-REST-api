@@ -1,60 +1,53 @@
 
--- ID of the virtual device
-local vdID = 963
--- Table to keep track of debug messages count and names for each element
-local debugInfoSummary = {}
+-- Function to dynamically retrieve the Home Center IP address
+function getHomeCenterIP()
+    local networkSettings = api.get("/settings/network")
+    return networkSettings.ip or "unknown IP"
+end
 
 -- Function to fetch and print debug messages for a specific element of the virtual device
-function getAndPrintElementDebugInfo(vdID, elementID, elementName)
-    local endpoint = "/virtualDevices/" .. vdID .. "/debugMessages/" .. elementID
+function getVDDebugInfo(vdID)
+    local endpoint = "/virtualDevices/" .. vdID .. "/debugMessages"
     local response, status = api.get(endpoint)
 
-    if status == 200 and response then
-        if next(response) ~= nil then
-            -- Store the count of debug messages and the element name
-            debugInfoSummary[elementID] = {count = #response, name = elementName}
-            for _, message in ipairs(response) do
-                fibaro:debug(message.txt)
-            end
-        else
-            -- Account for the element ID with 0 messages
-            debugInfoSummary[elementID] = {count = 0, name = elementName}
-        end
-    else
-        fibaro:debug("Failed to retrieve debug information for Element ID: " .. elementID)
-        debugInfoSummary[elementID] = {count = 0, name = elementName}
+    if status == 200 and response and #response > 0 then
+        local vdName = api.get("/virtualDevices/" .. vdID).name or "Unnamed VD"
+        -- Only return details for VDs with debug messages
+        return {id = vdID, count = #response, name = vdName}
     end
+
+    return nil
 end
 
--- Initialize summary for the main loop with a placeholder name "Main Loop"
-debugInfoSummary[0] = {count = 0, name = "Main Loop"}
+-- Function to iterate through all virtual devices, fetch debug messages, and summarize
+function fetchAndSummarizeDebugMessagesForAllVDs()
+    local homeCenterIP = getHomeCenterIP()
+    local allVDs = api.get("/virtualDevices")
+    local summary = {}
 
--- Function to fetch details of the virtual device, check for elements with "lua": true, and gather debug info
-function fetchAndPrintDebugMessagesForLuaElements(vdID)
-    -- Fetch and print debug info for the main loop (ID 0)
-    getAndPrintElementDebugInfo(vdID, 0, "Main Loop")
-
-    local vdDetails = api.get("/virtualDevices/" .. vdID)
-
-    if vdDetails and vdDetails.properties and vdDetails.properties.rows then
-        for _, row in ipairs(vdDetails.properties.rows) do
-            for _, element in ipairs(row.elements) do
-                -- Check for elements with Lua scripting enabled
-                if element.lua == true then
-                    getAndPrintElementDebugInfo(vdID, element.id, element.name)
-                end
+    if allVDs then
+        for _, vd in ipairs(allVDs) do
+            local vdInfo = getVDDebugInfo(vd.id)
+            if vdInfo then
+                table.insert(summary, vdInfo)
             end
         end
     else
-        fibaro:debug("Failed to retrieve or parse details for VD ID: " .. vdID)
+        fibaro:debug("Failed to retrieve virtual devices list.")
+        return
     end
 
-    -- Print summary of debug messages count and names
-    fibaro:debug("Summary of debug messages count and names:")
-    for elementID, info in pairs(debugInfoSummary) do
-        fibaro:debug("Element ID: " .. elementID .. ", Name: " .. info.name .. ", Debug Messages: " .. info.count)
+    -- Sort summary by debug message count (lowest to highest)
+    table.sort(summary, function(a, b) return a.count < b.count end)
+
+    -- Print sorted summary of debug messages with clickable links
+    fibaro:debug("Sorted summary of debug messages for virtual devices (excluding VDs with 0 messages):")
+    for _, info in ipairs(summary) do
+		local url = "http://" .. homeCenterIP .. "/fibaro/en/devices/virtual_edit.html?id=" .. info.id
+        local clickableLink = '<a href="' .. url .. '">' .. "VD ID: " .. info.id .. ", Name: " .. info.name .. ", Debug Messages: " .. info.count .. '</a>'
+        fibaro:debug(clickableLink)
     end
 end
 
--- Execute the function
-fetchAndPrintDebugMessagesForLuaElements(vdID)
+-- Execute the function to fetch and summarize debug messages for all virtual devices
+fetchAndSummarizeDebugMessagesForAllVDs()
