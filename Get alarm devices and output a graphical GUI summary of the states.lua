@@ -71,7 +71,8 @@ function utils.fd(message, color, deviceId)
     local colorCode = colorChoice[color] or 'grey'
     local deviceLink = deviceId and string.format("http://%s/fibaro/en/devices/configuration.html?id=%d", homeCenterIP, deviceId) or "#"
     local messageWithLink = deviceId and string.format("<a href='%s' target='_blank'>%s</a>", deviceLink, message) or message
-    fibaro:debug(utils.trim(string.format("<span style='color:white;'>[%s]</span> <span style='color:%s;'>%s</span>", os.date("%Y-%m-%d"), colorCode, messageWithLink)))
+    fibaro:debug(utils.trim(messageWithLink))
+  	--fibaro:debug(utils.trim(string.format("<span style='color:grey;'>[%s]</span> <span style='color:%s;'>%s</span>", os.date("%Y-%m-%d"), colorCode, messageWithLink)))
 end
 
 -- Fetch Room Name Using API
@@ -183,8 +184,10 @@ local function outputSummary(startSourceString)
         "</style>",
         "<table class='summaryTable'>",
         "<tr><th>Summary Item</th><th>Count</th><th>Details</th></tr>",
-        -- For each category, include a new cell with details
-        "<tr class='startSource'><td>Source of start</td><td>", "-", "</td><td>", startSourceString, "</td></tr>",
+
+      	-- For each category, include a new cell with details
+      	"<tr class='startSource'><td>Date: ", os.date("%Y-%m-%d"), "</td><td>-</td><td>Time: ", os.date("%H:%M:%S"), "</td></tr>",
+      	"<tr class='startSource'><td>Source of start: </td><td>", "-", "</td><td>", startSourceString, "</td></tr>",
         "<tr class='totalDevices'><td>Total Devices Checked</td><td>", #sensor_IDs, "</td><td>", "See details below", "</td></tr>",
         "<tr class='totalArmed'><td>Total Armed</td><td>", sensorStates.totalArmed, "</td><td>", generateSensorDetailsHTML(sensorStates.detailsArmed), "</td></tr>",
         "<tr class='totalBreached'><td>Total Breached</td><td>", sensorStates.totalBreached, "</td><td>", generateSensorDetailsHTML(sensorStates.detailsBreached), "</td></tr>",
@@ -192,12 +195,12 @@ local function outputSummary(startSourceString)
         "</table>"
     }, "")
 
-    utils.fd(summaryHtml)  
+    utils.fd(summaryHtml)  -- Make sure the utils.fd function is capable of interpreting and displaying HTML.
 end
 
 
 function clearDebugMessagesUsingUtils()
-    local sceneID = __fibaroSceneId  -- Use to get the current scene's ID
+    local sceneID = __fibaroSceneId  -- Use the predefined variable to get the current scene's ID
     local success, _ = pcall(utils.apiRequest, "/scenes/" .. sceneID .. "/debugMessages", "DELETE")
 
     if success then
@@ -230,13 +233,13 @@ local function main()
     if not sensorID then
         --utils.fd("Scene not started with sensor. ID: " .. tostring(startSource.type), 'grey')
         utils.checkDevicesAndCompileSummary()
-        --fibaro:sleep(3000)
-    	  --utils.fd("Aborting scene", 'grey')
+    	--fibaro:sleep(3000)
+    	--utils.fd("Aborting scene", 'grey')
 
-    	  -- Call the function to clear debug messages
-    	  --clearDebugMessagesUsingUtils()
+    	-- Call the function to clear debug messages
+    	--clearDebugMessagesUsingUtils()
     	
-    	  outputSummary(startSourceString)
+    	outputSummary(startSourceString)
     	
     	return fibaro:abort()
     end
