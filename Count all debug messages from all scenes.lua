@@ -1,4 +1,3 @@
-
 -- Function to dynamically retrieve the Home Center IP address
 function getHomeCenterIP()
     local networkSettings = api.get("/settings/network")
@@ -40,26 +39,59 @@ function fetchAndSummarizeDebugMessagesForAllScenes()
     -- Sort summary by debug message count (lowest to highest)
     table.sort(summary, function(a, b) return a.count < b.count end)
 
-    -- Define the text color as a variable for easy change
-    local textColor = "green"
+    -- Modern styling for the debug output
+    local htmlOutput = [[
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+        }
+        table {
+            width: 75%;
+            border-collapse: collapse;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #fafafa;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ccc;
+        }
+        th {
+            background-color: #009688;
+            color: #ffffff;
+            font-weight: normal;
+        }
+        tr:hover {
+            background-color: #DADADA;
+        }
+        td { 
+            color: #000000; /* This line changes the text color to black */
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    ]]
 
-    -- Begin the HTML for the debug output with CSS that includes the text color variable
-    local htmlOutput = "<style>:root { --text-color: " .. textColor .. "; } table{width:100%;border-collapse:collapse;background-color: #f4f4f4;}td,th{border:1px solid #888;padding:8px;text-align:left;color: var(--text-color);}tr:nth-child(even){background-color:#ddd;}tr:hover{background-color:#aaa;}th{padding-top:12px;padding-bottom:12px;text-align:left;background-color:#333;color:#fff;}</style>"
     htmlOutput = htmlOutput .. "Sorted summary of debug messages for Lua scenes (excluding scenes with 0 messages):<br><table><tr><th>Scene ID</th><th>Name</th><th>Debug Messages</th><th>Link</th></tr>"
 
-    -- Loop through each Lua scene to add to the HTML string
     for _, info in ipairs(summary) do
-        local url = "http://" .. homeCenterIP .. "/fibaro/en/scenes/edit.html?id=" .. info.id .. "#bookmark-advanced"
-        local clickableLink = '<a href="' .. url .. '" style="color: #06c; text-decoration: underline;">Edit Scene</a>'
+        local url = "http://" .. homeCenterIP .. "/fibaro/en/scenes/edit.html?id=" .. info.id
+        local clickableLink = '<a href="' .. url .. '">Edit Scene</a>'
         htmlOutput = htmlOutput .. "<tr><td>" .. info.id .. "</td><td>" .. info.name .. "</td><td>" .. info.count .. "</td><td>" .. clickableLink .. "</td></tr>"
     end
 
-    -- Close the HTML table
     htmlOutput = htmlOutput .. "</table>"
 
-    -- Debug the final HTML output
     fibaro:debug(htmlOutput)
 end
 
--- Execute the function to fetch and summarize debug messages for all Lua scenes
 fetchAndSummarizeDebugMessagesForAllScenes()
